@@ -52,8 +52,6 @@ FileForDistribution = ""
 FileForRhythm = ""
 thereAreAlreadyAnalysesOpenInDistribution = False
 thereAreAlreadyAnalysesOpenInRhythm = False
-iStrokeThickness = 0;
-IStrokeThickness = 0;
 Option_list = ["Use an automatically determined stroke thickness everywhere (default)", "Use a custom stroke thickness everywhere", "Use one custom threshold", "Use the threshold values found at the automatically determined stroke width in the 'i' and 'I'"];
 fontAngle = Active_Font.masters[0].italicAngle
 
@@ -86,19 +84,19 @@ def CreateWorkingFile():
 #--------------------------------------------
 #Create a duplicate file
 def CreateEmptyFile():
-    Copied_Font = Active_Font.copy()
-    Copied_Font.familyName = "The black mass of %s" %Copied_Font.familyName
-    Copied_Font.gridSubDivisions = 100#for better details
+    FileForDistribution = Active_Font.copy()
+    FileForDistribution.familyName = "The horizontal black mass distribution of %s" %FileForDistribution.familyName
+    FileForDistribution.gridSubDivisions = 100#for better details
     #Erase all glyphs in the copied font
-    Copied_Font.disableUpdateInterface()
-    for thisGlyph in Copied_Font.glyphs:
+    FileForDistribution.disableUpdateInterface()
+    for thisGlyph in FileForDistribution.glyphs:
         for thisLayer in thisGlyph.layers:
             for x in range(len(thisLayer.components))[::-1]:
                 del(thisLayer.components[0])
             for thisPath in range(len(thisLayer.paths))[::-1]:
                 del thisLayer.paths[thisPath]
-    Copied_Font.enableUpdateInterface()
-    return Copied_Font
+    FileForDistribution.enableUpdateInterface()
+    return FileForDistribution
 
 
 #--------------------------------------------
@@ -122,9 +120,88 @@ def CheckForExistingAnalysesInRhythm():
 
 
 #--------------------------------------------
+#Analyse the letter for the black mass and output that
+def DetermineBlackMass(preciseness, thisLayer, InvisibleWorkingFile, FileForDistribution):
+    try:
+        activeGlyphName = thisLayer.parent.name
+        ActiveLayer = InvisibleWorkingFile.glyphs[activeGlyphName].layers[0]
+        if debug==True:print "Starting the function DetermineBlackMass on the glyph '%s'" %thisLayer.parent.name
+        #Analyse the glyphs vertically per horizontally defined preciseness
+        EmUnit = -1000#this value to start counting from before [0,0]
+        #Prepare an empty path
+        NodeData = []
+        #remember if the analysis if a mass was detected.
+        status = 0
+        
+        while EmUnit <= ActiveLayer.width+1000:#count till way behind the glyphs width.
+            #draw an intersection from bottom to top
+            intersection = ActiveLayer.intersectionsBetweenPoints((EmUnit,-1500),(EmUnit,+2500), True)
+            #if there is a black mass, continue
+            if len(intersection) > 2:
+                if status == 0:
+                    NodeData += [[EmUnit, 0]]
+                status = 1
+                height=0
+                CurrentPoint=2
+                #for each two intersections, count the length of the intersection in the black mass. ##############in a triangle, it provides an error!
+                while CurrentPoint <= len(intersection)-2:
+                    height += intersection[CurrentPoint].y - intersection[CurrentPoint-1].y
+                    CurrentPoint+=2
+                Node = [[EmUnit, height]]
+                NodeData += Node
+            elif len(intersection) == 2:
+                #if a mass was detected before
+                if status == 1:
+                    status = 0
+                    Node = [[EmUnit-preciseness, 0]]
+                    NodeData += Node
+                    NodeData += ["CLOSE PATH"]
+            EmUnit += preciseness#till the width of the glyphs is analysed
+        #if a log is requested, print the data
+        if debug==True:
+            print "for the glyph '%s' was the following data found:" %activeGlyphName
+            for item in NodeData:
+                print item
+        return NodeData
+    except Exception, ex:
+        print "The black mass could not be determined: %s" %ex
+
+
+#--------------------------------------------
+#Draw the black mass of the letter
+def DrawBlackMass(mass, thisLayer, InvisibleWorkingFile, FileForDistribution):
+    global debug
+    try:
+        activeGlyphName = thisLayer.parent.name
+        if debug==True:print "Starting the function DrawBlackMass for the glyph '%s'" %activeGlyphName
+        Path = GSPath()
+        heightPosition = ""#To remember the previous y-height, in order to possibly skip unnecessary nodes
+        
+        #Analyse the incoming data
+        for Data in mass:
+            #Detect when to close paths, possibly drawing separate paths
+            if Data == "CLOSE PATH":
+                Path.closed = True
+                Path.reverse()#otherwise it contains a white fill
+                FileForDistribution.glyphs[activeGlyphName].layers[0].paths.append(Path)
+                #reset info
+                Path = GSPath()
+                heightPosition = ""
+            else:
+                NodeToAdd = GSNode()
+                NodeToAdd.position = (Data[0], Data[1])
+                heightPosition = Data[1]
+                Path.nodes.append(NodeToAdd)
+    except Exception, ex:
+        print "The black mass could not be drawn: %s" %ex
+
+
+#--------------------------------------------
 #Get the stroke width of the letter 'i'
 def getStrokeThicknessLowercase():
+    global debug
     try:
+        Active_Font = Glyphs.fonts[0]
         if debug==True:print "Starting the function getStrokeThicknessLowercase"
         #Take the metrics and take half the x-height
         halfLowercaseHeight = Active_Font.masters[0].xHeight/2
@@ -146,7 +223,7 @@ def getStrokeThicknessLowercase():
     #If the function is not working, throw in a warning
     except Exception, ex:
         print "The stroke width could not be determined: %s" %ex
-        Message("The stroke width could not be determined for the lowercase. Please select the option to manually insert values. A reason could be that the letter 'i' is not drawn, or that the design is too complex.", "Warning", OKButton=None)
+        Message("The stroke width could not be determined for the lowercase. Please check if the right font is active, or manually insert values. A reason could be that the letter 'i' is not drawn, or that the design is too complex.", "Warning", OKButton=None)
         return 1
 
 
@@ -154,6 +231,7 @@ def getStrokeThicknessLowercase():
 #Get the stroke width of the letter 'i'
 def getStrokeThicknessUppercase():
     try:
+        Active_Font = Glyphs.fonts[0]
         if debug==True:print "Starting the function getStrokeThicknessUppercase"
         #Take the metrics and take half the Capital height
         halfCapitalHeight = Active_Font.masters[0].capHeight/2
@@ -175,8 +253,19 @@ def getStrokeThicknessUppercase():
     #If the function is not working, throw in a warning
     except Exception, ex:
         print "The stroke width could not be determined: %s" %ex
-        Message("The stroke width could not be determined for the uppercase. Please select the option to manually insert values. A reason could be that the letter 'I' is not drawn, or that the design is too complex.", "Warning", OKButton=None)
+        Message("The stroke width could not be determined for the uppercase. Please check if the right font is active, or manually insert values. A reason could be that the letter 'I' is not drawn, or that the design is too complex.", "Warning", OKButton=None)
         return 1
+
+
+#--------------------------------------------
+#First close already performed analyses
+def closeExisting(text):
+    x=0
+    while x < len(Glyphs.fonts):
+        if Glyphs.fonts[x].familyName.startswith(text):
+            if debug==True:print("An already open analysis is closed")
+            Glyphs.fonts[x].close(True)
+        x+=1
 
 
 
@@ -247,6 +336,10 @@ class run_program(object):
         
         
         #Get the necessary stroke thickness
+        Active_Font = Glyphs.fonts[0]
+        print Active_Font
+        iStrokeThickness = 0;
+        IStrokeThickness = 0;
         iStrokeThickness = getStrokeThicknessLowercase()
         IStrokeThickness = getStrokeThicknessUppercase()
         global debug
@@ -298,7 +391,7 @@ class run_program(object):
         self.window.text_13 = vanilla.TextBox( (Column1, RowD01, -Column1, RowD01plus), "", sizeStyle='small')
         self.window.text_14 = vanilla.TextBox( (Column1, RowD02, -Column1, RowD02plus), "Please note that if the custom values are too small or too large, the drawings will be incorrect, possibly not showing any rhythm at all. To update the automatically determined stroke thickness, restart the plugin.", sizeStyle='small')
         self.window.DrawRhythm = vanilla.Button( (Column1, RowD03, -Column1, RowD03plus), "Draw the rhythm of the selected glyphs", callback=self.DrawRhythm, sizeStyle='small')
-        self.window.mergeFiles = vanilla.CheckBox( (Column1, RowD04, -Column1, RowD04plus), "Merge analyses in one file.\nSelect different letters to combine different analysis together", callback=self.SavePreferences, sizeStyle='small')
+        self.window.mergeFiles = vanilla.CheckBox( (Column1, RowD04, -Column1, RowD04plus), "Merge different rhythms in one file.\nSelect different letters to combine different analysis together", callback=self.SavePreferences, sizeStyle='small')
         self.window.closeWindowOnFinish = vanilla.CheckBox( (Column1, RowD05, -Column1, RowD05plus), "Close this window on finish", callback=self.SavePreferences, sizeStyle='small' )
         self.window.debug = vanilla.CheckBox( (Column1, RowD06, -Column1, RowD06plus), "Export a log to the console\n(Can require a restart of the plugin)", callback=self.SavePreferences, sizeStyle='small' )
 
@@ -394,38 +487,68 @@ class run_program(object):
 
     def DrawBlackMass(self, sender):
         try:
-            font.disableUpdateInterface()
+            debug = self.window.debug.get()
+            closeExisting("The horizontal black mass distribution of")
+            
+            Active_Font = Glyphs.fonts[0]
+            Active_Font.disableUpdateInterface()
             originalGridSubDivisions = Active_Font.gridSubDivisions#Backup for later
             Active_Font.gridSubDivisions = 100#for better details
-            debug = self.window.debug.get()
+            preciseness = float(self.window.preciseness.get())
             #############################
-            Message("This function is not implemented yet.")
+            #Perform actions for each selected letter
+            if Active_Font.selectedLayers == None:
+                Message("No glyphs selected.")
+            else:
+                #always update the working file
+                InvisibleWorkingFile = ""
+                InvisibleWorkingFile = CreateWorkingFile()
+                #Check if there are already analysis done on the active file, and if not create files to work in
+                FileForDistribution = ""
+                FileForDistribution = CreateEmptyFile()
+                Glyphs.fonts.append(FileForDistribution)
+                for thisLayer in Active_Font.selectedLayers:
+                    mass = DetermineBlackMass(preciseness, thisLayer, InvisibleWorkingFile, FileForDistribution)
+                    DrawBlackMass(mass, thisLayer, InvisibleWorkingFile, FileForDistribution)
             #############################
             Active_Font.gridSubDivisions = originalGridSubDivisions#Back to the default
-            font.enableUpdateInterface()
+            Active_Font.enableUpdateInterface()
             if Glyphs.defaults["com.Artengar.RhythmConductor.closeWindowOnFinish"] == True:
                 self.window.close()
-            Message("Finished")
         except Exception, ex:
             print "Error while drawing the black mass: %s"%ex
             return False
         
     def DrawRhythm(self, sender):
         try:
-            font.disableUpdateInterface()
+            debug = self.window.debug.get()
+            closeExisting("The horizontal black mass distribution of")
+            
+            Active_Font = Glyphs.fonts[0]
+            Active_Font.disableUpdateInterface()
             originalGridSubDivisions = Active_Font.gridSubDivisions#Backup for later
             Active_Font.gridSubDivisions = 100#for better details
             debug = self.window.debug.get()
             #############################
             Message("This function is not implemented yet.")
+            
+            #if CheckForExistingAnalysesInRhythm() == False:
+                #FileForDistribution = CreateEmptyFile()
+                #Message("Case 1")
+            #elif Glyphs.defaults["com.Artengar.RhythmConductor.mergeFiles"] == False:
+                #FileForDistribution = CreateEmptyFile()
+                #Glyphs.fonts
+                #Message("Case 2")
+            
             #############################
             Active_Font.gridSubDivisions = originalGridSubDivisions#Back to the default
-            font.enableUpdateInterface()
+            Active_Font.enableUpdateInterface()
             if Glyphs.defaults["com.Artengar.RhythmConductor.closeWindowOnFinish"] == True:
                 self.window.close()
         except Exception, ex:
             print "Error while drawing the rhythm: "%ex
             return False
+    
 
 
 
@@ -449,7 +572,7 @@ if len(Glyphs.fonts) <=0:
 else:
     Glyphs.clearLog()
     if debug==True: Glyphs.showMacroWindow()
+    closeExisting("The horizontal black mass distribution of")
     run_program()
-    font = Glyphs.font
 
 
