@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>English</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Rhythm Inspector</string>
+	<string>RhythmInfluencer</string>
 	<key>CFBundleExecutable</key>
 	<string>plugin</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Rhythm Inspector</string>
+	<string>RhythmInfluencer</string>
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 	<key>CFBundleVersion</key>
@@ -21,13 +21,13 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>UpdateFeedURL</key>
-	<string>____OnlineUrlToThisPlist____</string>
+	<string>https://github.com/Artengar/Glyphs_Plugins/blob/master/Rhythm_Influencer/RhythmInfluencer.glyphsFilter/Contents/Info.plist</string>
 	<key>productPageURL</key>
-	<string>____ProductPageURL____</string>
+	<string>http://artengar.com/pages/rhythm_influencer.html</string>
 	<key>productReleaseNotes</key>
 	<string>Smaller bug fixes</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright, Maarten Renckens, 2020</string>
+	<string>Copyright, Maarten Renckens, 2020-</string>
 	<key>NSPrincipalClass</key>
 	<string>RhythmInfluencer</string>
 	<key>PyMainFileNames</key>
