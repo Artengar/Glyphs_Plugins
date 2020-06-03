@@ -19,9 +19,9 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>1.1</string>
 	<key>UpdateFeedURL</key>
-	<string>https://github.com/Artengar/Glyphs_Plugins/blob/master/Rhythm_Influencer/RhythmInfluencer.glyphsFilter/Contents/Info.plist</string>
+	<string>https://github.com/Artengar/Glyphs_Plugins/blob/master/Rhythm_Influencer/RhythmInfluencer.glyphsPlugin/Contents/Info.plist</string>
 	<key>productPageURL</key>
 	<string>http://artengar.com/pages/rhythm_influencer.html</string>
 	<key>productReleaseNotes</key>

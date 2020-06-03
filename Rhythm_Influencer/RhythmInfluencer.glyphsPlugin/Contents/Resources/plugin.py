@@ -243,8 +243,8 @@ def detectStrokeThicknesses(debug, self, Active_Font):
     Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.AutoDetected_I"] = IStrokeThickness
     
     # Set values in the window
-    self.UIAutoDetected_i.setStringValue_(iStrokeThickness)
-    self.UIAutoDetected_I.setStringValue_(IStrokeThickness)
+    self.window.box_iStrokeThickness.set(iStrokeThickness)
+    self.window.box_IStrokeThickness.set(IStrokeThickness)
     return iStrokeThickness, IStrokeThickness
 
 
@@ -367,13 +367,13 @@ def calculateRhythm(debug, FileForDistribution, FileForRhythm, thisLayer, precis
     
     #provide a different desiredStrokeThickness for upper/lowercase, and
     if activeGlyphName[0].isupper():
-        if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.OverwriteDetected"] == 0:
+        if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.OverwriteDetected"] == False:
             desiredStrokeThickness = Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.AutoDetected_I"]
         else:
             desiredStrokeThickness = Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Manual_I"]
         
     else:
-        if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.OverwriteDetected"] == 0:
+        if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.OverwriteDetected"] == False:
             desiredStrokeThickness = Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.AutoDetected_i"]
         else:
             desiredStrokeThickness = Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Manual_i"]
@@ -445,7 +445,7 @@ def calculateRhythm(debug, FileForDistribution, FileForRhythm, thisLayer, precis
     #Find the position of the rhythm
     #Prepare an empty path
     listOfRhythmPositions = []
-    TresholdStrokeLength = Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.TresholdStrokeLength"]
+    TresholdStrokeLength = float(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.TresholdStrokeLength"])
     
     for nodes in encounteredPeaks:
         foundTheRhythm = False
@@ -468,17 +468,14 @@ def calculateRhythm(debug, FileForDistribution, FileForRhythm, thisLayer, precis
                                 Node = [[float(intersection[item].x), float(intersection[item+1].x)]]
                                 listOfRhythmPositions += Node
                             else:
-                                if debug:print("A stroke was found, but it was too small: %s units" %Yprogess)
+                                if debug:print("A stroke was found, but it was too small: %s units with a threshold of %s units." %(Yprogess, TresholdStrokeLength))
                             foundTheRhythm = True
                     item += 1
             Yprogess -= preciseness/2#Work more precise, to estimate the stroke width better. till the width of the glyphs is analysed
     
         
     #if a log is requested, print the data
-    if debug:
-        print("for the glyph '%s' was the following data found:" %activeGlyphName)
-        for item in listOfRhythmPositions:
-            print(item)
+    if debug: print("for the glyph '%s' was the following rhythm found: %s" %(activeGlyphName, listOfRhythmPositions))
     return listOfRhythmPositions
 
 
@@ -541,7 +538,7 @@ def DrawTheRhythm(debug, FileForDistribution, FileForRhythm, thisLayer, listOfRh
 
 ############################################### Scale ###############################################
 def getNewXPosition(debug, Active_Font, currentXValue, zonesNegative, zonesPositive, customScale):
-    if debug:print("\n<<<Starting the function getNewXPosition")
+    #if debug:print("\n<<<Starting the function getNewXPosition")
     
     newXValue = 0
     lastPassedZone = 0
@@ -589,7 +586,7 @@ def getNewXPosition(debug, Active_Font, currentXValue, zonesNegative, zonesPosit
         if newXValueFound == False:
             newXValue += (currentXValue - lastPassedZone) * customScale
             print("too large")
-    if debug:print("moved X from X=%s to X=%s:" %(currentXValue, newXValue))
+    #if debug:print("moved X from X=%s to X=%s:" %(currentXValue, newXValue))
     return newXValue
 
 
@@ -603,61 +600,69 @@ def scaling(debug, Active_Font, FileForScaling, listOfRhythmPositions, thisLayer
     FileForScaling.glyphs[activeGlyphName].layers[0] = thisLayer.copy()
     ActiveLayer = FileForScaling.glyphs[activeGlyphName].layers[0]#!!!!!!! Use zero to call the layer, or the id, but not a name!
     
-    
     customScale = float(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleRest"])/100
     customStrokeScale = float(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleThickness"])/100
     customSideBearingsScale = float(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleSideBearings"])/100
-    RhythmExtension = float(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExtendStrokeWidth"])
+    RhythmExtension = float(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExtendRhythmWidth"])
+    
+    #Make the strokes wider
+    for RhythmPosition in listOfRhythmPositions:
+        RhythmPosition[0] -= RhythmExtension
+        RhythmPosition[1] += RhythmExtension
+    
     #remember some data for later
     existingLSB = ActiveLayer.LSB
     existingRSB = ActiveLayer.RSB
     #Create the different zones within the letter #This will be a list [[X,Z]], in which X is the horizontal coordinate and Z the scale for that distance
     zonesNegative = []
     zonesPositive = []
-    #handle negative sidebearings
-    if existingLSB < 0:
-        #if the rhythm does not immediately start while there is a negative SB
-        if existingLSB != listOfRhythmPositions[0][0]:
-            zonesNegative += [[existingLSB, customScale]]
-        #add all other negative zones
-        for RhythmBoundary in listOfRhythmPositions:
-            if RhythmBoundary[0] < 0:
-                zonesNegative += [[RhythmBoundary[0], customStrokeScale]]
-            if RhythmBoundary[1] < 0:
-                zonesNegative += [[RhythmBoundary[1], customScale]]
-        print(zonesNegative)
-    #handle positive sidebearings
-    elif existingLSB > 0 and existingLSB != 0:
-        zonesPositive += [[existingLSB, customSideBearingsScale]]
-    #handle all other positive zones
-    for RhythmBoundary in listOfRhythmPositions:
-        if RhythmBoundary[0] > 0:
-            #it could be that the LSB ends at the rhythm, so some extra tests are necessary
-            if zonesNegative != []:
-                if RhythmBoundary[0] != (zonesNegative[len(zonesNegative)-1][0]):
-                    zonesPositive += [[RhythmBoundary[0], customScale]]
-            elif zonesPositive != []:
-                if RhythmBoundary[0] != (zonesPositive[len(zonesPositive)-1][0]):
-                    zonesPositive += [[RhythmBoundary[0], customScale]]
-        if RhythmBoundary[1] > 0:
-            zonesPositive += [[RhythmBoundary[1], customStrokeScale]]
-    #Add the zone between the latest stroke and the RSB
-    if (zonesPositive[len(zonesPositive)-1][0]) < (ActiveLayer.width - existingRSB):
-        zonesPositive += [[(ActiveLayer.width-existingRSB), customScale]]
-    zonesNegative.reverse() #reverse makes it easier to work with both lists in the same way later on
-    #the RSB comes later, it does not need to be in the list.
     
+    #Do nothing special if no rhythm is detected.
+    if listOfRhythmPositions != []:
+        #handle negative sidebearings
+        if existingLSB < 0:
+            #if the rhythm does not immediately start while there is a negative SB
+            if existingLSB != listOfRhythmPositions[0][0]:
+                zonesNegative += [[existingLSB, customScale]]
+            #add all other negative zones
+            for RhythmBoundary in listOfRhythmPositions:
+                if RhythmBoundary[0] < 0:
+                    zonesNegative += [[RhythmBoundary[0], customStrokeScale]]
+                if RhythmBoundary[1] < 0:
+                    zonesNegative += [[RhythmBoundary[1], customScale]]
+        #handle positive sidebearings
+        elif existingLSB > 0 and existingLSB != 0:
+            zonesPositive += [[existingLSB, customSideBearingsScale]]
+        #handle all other positive zones
+        for RhythmBoundary in listOfRhythmPositions:
+            if RhythmBoundary[0] > 0:
+                #it could be that the LSB ends at the rhythm, so some extra tests are necessary
+                if zonesNegative != []:
+                    if RhythmBoundary[0] != (zonesNegative[len(zonesNegative)-1][0]):
+                        zonesPositive += [[RhythmBoundary[0], customScale]]
+                elif zonesPositive != []:
+                    if RhythmBoundary[0] != (zonesPositive[len(zonesPositive)-1][0]):
+                        zonesPositive += [[RhythmBoundary[0], customScale]]
+            if RhythmBoundary[1] > 0:
+                zonesPositive += [[RhythmBoundary[1], customStrokeScale]]
+        #Add the zone between the latest stroke and the RSB
+        if (zonesPositive[len(zonesPositive)-1][0]) < (ActiveLayer.width - existingRSB):
+            zonesPositive += [[(ActiveLayer.width-existingRSB), customScale]]
+        zonesNegative.reverse() #reverse makes it easier to work with both lists in the same way later on
+        #the RSB comes later, it does not need to be in the list.
+    else:
+        zonesNegative += [[0,1]]
+        zonesPositive += [[0,1]]
+        
+        
     #re-position every x-value of nodes, anchors, and origins of components (scale)
     for thisPath in ActiveLayer.paths:
         for thisNode in thisPath.nodes:
             currentXValue = thisNode.x
             thisNode.x = getNewXPosition(debug, Active_Font, currentXValue, zonesNegative, zonesPositive, customScale)
-    print(ActiveLayer.components)
     for component in ActiveLayer.components:
-        print(component.position)
         currentXValue = component.position.x
         component.x = getNewXPosition(debug, Active_Font, currentXValue, zonesNegative, zonesPositive, customScale)
-        print(component.position)
     for anchor in ActiveLayer.anchors:
         currentXValue = anchor.x
         anchor.x = getNewXPosition(debug, Active_Font, currentXValue, zonesNegative, zonesPositive, customScale)
@@ -785,7 +790,7 @@ def main_steps(makeDistribution, makeRhythm, makeScale):
                     FileForScaling.gridSubDivisions = originalGridSubDivisions
         
         ##################################
-        ###          Analyse and draw       ###
+        ###     Analyse and draw       ###
         ##################################
         
         for thisLayer in Active_Font.selectedLayers:
@@ -863,45 +868,45 @@ class RhythmInfluencer(GeneralPlugin):
         try:
             #Delete old settings (only manually called when needed)
             """del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Preciseness"])
+            del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.DetectSerifs"])
             del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.OverwriteDetected"])
             del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Manual_i"])
             del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Manual_I"])
-            del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.DetectSerifs"])
             del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.TresholdStrokeLength"])
             del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleThickness"])
             del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleRest"])
             del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleSideBearings"])
-            del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExtendStrokeWidth"])
+            del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExtendRhythmWidth"])
             del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.MergeFiles"])
             del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.KeepWindowOpen"])
             del(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExportLog"])"""
             #Set default settings
             NSUserDefaults.standardUserDefaults().registerDefaults_({
                 "com.maartenrenckens.RhythmInfluencer.Preciseness": 1.0,
+                "com.maartenrenckens.RhythmInfluencer.DetectSerifs": False,
                 "com.maartenrenckens.RhythmInfluencer.OverwriteDetected": True,
                 "com.maartenrenckens.RhythmInfluencer.Manual_i": 40,
                 "com.maartenrenckens.RhythmInfluencer.Manual_I": 50,
-                "com.maartenrenckens.RhythmInfluencer.DetectSerifs": True,
                 "com.maartenrenckens.RhythmInfluencer.TresholdStrokeLength": 150,
                 "com.maartenrenckens.RhythmInfluencer.ScaleThickness": 100,
                 "com.maartenrenckens.RhythmInfluencer.ScaleRest": 100,
                 "com.maartenrenckens.RhythmInfluencer.ScaleSideBearings": 100,
-                "com.maartenrenckens.RhythmInfluencer.ExtendStrokeWidth": 10,
+                "com.maartenrenckens.RhythmInfluencer.ExtendRhythmWidth": 10,
                 "com.maartenrenckens.RhythmInfluencer.MergeFiles": True,
                 "com.maartenrenckens.RhythmInfluencer.KeepWindowOpen": True,
                 "com.maartenrenckens.RhythmInfluencer.ExportLog": True
             })
             #Populate entry fields
             self.window.box_preciseness.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Preciseness"])
-            """self.UIOverwriteDetected.setIntValue_(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.OverwriteDetected"])
-            self.UIManual_i.setStringValue_(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Manual_i"])
-            self.UIManual_I.setStringValue_(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Manual_I"])
-            self.UIDetectSerifs.setIntValue_(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.DetectSerifs"])
-            self.UITresholdStrokeLength.setStringValue_(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.TresholdStrokeLength"])
-            self.UIScaleThickness.setStringValue_(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleThickness"])
-            self.UIScaleRest.setStringValue_(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleRest"])
-            self.UIScaleSideBearings.setStringValue_(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleSideBearings"])
-            self.UIExtendStrokeWidth.setStringValue_(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExtendStrokeWidth"])"""
+            self.window.DetectSerifs.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.DetectSerifs"])
+            self.window.OverwriteDetected.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.OverwriteDetected"])
+            self.window.box_Manual_i.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Manual_i"])
+            self.window.box_Manual_I.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Manual_I"])
+            self.window.box_TresholdStrokeLength.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.TresholdStrokeLength"])
+            self.window.box_ScaleThickness.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleThickness"])
+            self.window.box_ScaleRest.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleRest"])
+            self.window.box_ScaleSideBearings.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleSideBearings"])
+            self.window.box_ExtendRhythmWidth.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExtendRhythmWidth"])
             self.window.mergeFiles.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.MergeFiles"])
             self.window.keepWindowOpen.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.KeepWindowOpen"])
             self.window.ExportLog.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExportLog"])
@@ -914,15 +919,15 @@ class RhythmInfluencer(GeneralPlugin):
     def savePreferences(self, sender):
         try:
             Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Preciseness"] = self.window.box_preciseness.get()
-            """Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.OverwriteDetected"] = self.UIOverwriteDetected.get()
-            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Manual_i"] = self.UIManual_i.get()
-            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Manual_I"] = self.UIManual_I.get()
-            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.DetectSerifs"] = self.UIDetectSerifs.get()
-            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.TresholdStrokeLength"] = self.UITresholdStrokeLength.get()
-            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleThickness"] = self.UIScaleThickness.get()
-            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleRest"] = self.UIScaleRest.get()
-            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleSideBearings"] = self.UIScaleSideBearings.get()
-            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExtendStrokeWidth"] = self.UIExtendStrokeWidth.get()"""
+            #Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.DetectSerifs"] = self.window.DetectSerifs.get()
+            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.OverwriteDetected"] = self.window.OverwriteDetected.get()
+            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Manual_i"] = self.window.box_Manual_i.get()
+            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Manual_I"] = self.window.box_Manual_I.get()
+            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.TresholdStrokeLength"] = self.window.box_TresholdStrokeLength.get()
+            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleThickness"] = self.window.box_ScaleThickness.get()
+            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleRest"] = self.window.box_ScaleRest.get()
+            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ScaleSideBearings"] = self.window.box_ScaleSideBearings.get()
+            Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExtendRhythmWidth"] = self.window.box_ExtendRhythmWidth.get()
             Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.MergeFiles"] = self.window.mergeFiles.get()
             Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.KeepWindowOpen"] = self.window.keepWindowOpen.get()
             Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExportLog"] = self.window.ExportLog.get()
@@ -930,6 +935,17 @@ class RhythmInfluencer(GeneralPlugin):
             if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExportLog"]: print("Preferences saved: %s" %sender)
         except Exception, ex:
             print("Could not save prefs: %s" %ex)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     @objc.python_method
@@ -944,6 +960,8 @@ class RhythmInfluencer(GeneralPlugin):
         windowMargin = 15
         windowColumn1 = 285
         windowColumn2 = 100
+        windowInbetweenSmallColumns = 20
+        windowSmallColumns = (windowColumn2 - windowInbetweenSmallColumns)/2
         windowWidth = windowMargin*2 + windowColumn1 + windowColumn2
         windowExtraSpacer = 20
         windowRow1Plus = 40
@@ -957,11 +975,37 @@ class RhythmInfluencer(GeneralPlugin):
         #Rows2
         windowRow5Pos = windowRow4Pos + windowRow4Plus + windowExtraSpacer
         windowRow5Plus = 20
+        windowRow6Pos = windowRow5Pos + windowRow5Plus
+        windowRow6Plus = 20
+        #Rows3
+        windowRow7Pos = windowRow6Pos + windowRow6Plus + windowExtraSpacer
+        windowRow7Plus = 20
+        windowRow8Pos = windowRow7Pos + windowRow7Plus
+        windowRow8Plus = 20
+        windowRow9Pos = windowRow8Pos + windowRow8Plus
+        windowRow9Plus = 20
+        windowRow10Pos = windowRow9Pos + windowRow9Plus
+        windowRow10Plus = 20
+        #Rows4
+        windowRow11Pos = windowRow10Pos + windowRow10Plus + windowExtraSpacer
+        windowRow11Plus = 20
+        windowRow12Pos = windowRow11Pos + windowRow11Plus
+        windowRow12Plus = 20
+        windowRow13Pos = windowRow12Pos + windowRow12Plus
+        windowRow13Plus = 30
+        windowRow14Pos = windowRow13Pos + windowRow13Plus
+        windowRow14Plus = 20
+        windowRow15Pos = windowRow14Pos + windowRow14Plus
+        windowRow15Plus = 35
+        windowRow16Pos = windowRow15Pos + windowRow15Plus
+        windowRow16Plus = 20
+        windowRow17Pos = windowRow16Pos + windowRow16Plus
+        windowRow17Plus = 175
         
-        windowHeight = 800
+        windowHeight = windowRow17Pos + windowRow17Plus + 160
         
         #Closing notes (written in reverse order!)
-        windowNotes1Min = 85
+        windowNotes1Min = 60 + windowMargin
         windowNotes1Pos = windowHeight - windowNotes1Min
         windowNotes2Min = 20
         windowNotes2Pos = windowNotes1Pos - windowNotes2Min
@@ -981,15 +1025,15 @@ class RhythmInfluencer(GeneralPlugin):
         # General introduction #
         ########################
         
-        self.window.text_1 = vanilla.TextBox( (windowMargin, windowMargin, -windowMargin, windowRow1Plus), "The Rhythm Influencer creates variations on the rhythm in (most) letters fast. BETA version!", sizeStyle='regular')
-        self.window.text_2 = vanilla.TextBox( (windowMargin, windowRow2Pos, -windowMargin, windowRow2Plus), "The app understands the rhythm in letters via an analysis of the black mass. Based on the highest concentration of this black mass, the rhythm in the letters is derrived. Knowing the rhythm allows for fast transformations in the letter shapes.", sizeStyle='small')
+        self.window.text_1 = vanilla.TextBox( (windowMargin, windowMargin, -windowMargin, windowRow1Plus), "The Rhythm Influencer creates variations on the rhythm in (most) letters fast. (beta)", sizeStyle='regular')
+        self.window.text_2 = vanilla.TextBox( (windowMargin, windowRow2Pos, -windowMargin, windowRow2Plus), "The app derrives the rhythm via an analysis of the highest concentration in the letters' black mass. Knowing the rhythm allows contextual scaling of the letterforms and thus the fast creation variations on a letter form. Those generated letters are ready to be polished and suited for furter interpolation.", sizeStyle='small')
         
         ###############
         # Preciseness #
         ###############
         
         self.window.text_Row2 = vanilla.TextBox( (windowMargin, windowRow3Pos, -windowMargin, windowRow3Plus), "Preciseness (in Em units):", sizeStyle='small')
-        self.window.box_preciseness = vanilla.EditText( (windowColumn1, windowRow3Pos, -windowMargin, windowRow3Plus-1), sizeStyle='small')
+        self.window.box_preciseness = vanilla.EditText( (windowColumn1, windowRow3Pos-3, -windowMargin, windowRow3Plus-4), callback=self.savePreferences, sizeStyle='small')
         self.window.text_Row3 = vanilla.TextBox( (windowMargin, windowRow4Pos, -windowMargin, windowRow4Plus), "Angle: (not yet implemented in this version of the plugin)", sizeStyle='small')
         """X"""
         
@@ -998,49 +1042,100 @@ class RhythmInfluencer(GeneralPlugin):
         #######################
         
         self.window.DrawBlackMass = vanilla.Button( (windowMargin, windowRow5Pos, -windowMargin, windowRow5Plus), "Draw the black mass distribution for the selected glyphs", callback=self.WorkOnBlackMass, sizeStyle='small')
+        self.window.DetectSerifs = vanilla.CheckBox( (windowMargin, windowRow6Pos, -windowMargin, windowRow6Plus), "Long serif are detected and will be omitted. (Not yet implemented)", callback=self.savePreferences, sizeStyle='small' )
+        self.window.DetectSerifs.enable(False)
         
         ###################
         # Draw the rhythm #
         ###################
         
+        #Line1
+        self.window.text_Row7A = vanilla.TextBox( (windowMargin, windowRow7Pos, -windowMargin, windowRow7Plus), "Automatically detected stroke thicknesses:", sizeStyle='small')
+        self.window.text_Row7B = vanilla.TextBox( (windowColumn1-windowInbetweenSmallColumns, windowRow7Pos, windowInbetweenSmallColumns, windowRow7Plus), "i:", sizeStyle='small', alignment='right')
+        self.window.box_iStrokeThickness = vanilla.EditText( (windowColumn1, windowRow7Pos-3, windowSmallColumns, windowRow7Plus-4), sizeStyle='small')
+        self.window.box_iStrokeThickness.enable(False)
+        self.window.text_Row7C = vanilla.TextBox( (windowColumn1 + windowSmallColumns, windowRow7Pos, windowInbetweenSmallColumns, windowRow7Plus), "I:", sizeStyle='small', alignment='right')
+        self.window.box_IStrokeThickness = vanilla.EditText( (windowColumn1 + windowSmallColumns + windowInbetweenSmallColumns, windowRow7Pos-3, -windowMargin, windowRow7Plus-4), sizeStyle='small')
+        self.window.box_IStrokeThickness.enable(False)
+        #Line2
+        self.window.OverwriteDetected = vanilla.CheckBox( (windowMargin, windowRow8Pos-2, -windowMargin, windowRow8Plus-2), "Overwrite those with:", callback=self.savePreferences, sizeStyle='small')
+        self.window.text_Row8B = vanilla.TextBox( (windowColumn1-windowInbetweenSmallColumns, windowRow8Pos, windowInbetweenSmallColumns, windowRow8Plus), "i:", sizeStyle='small', alignment='right')
+        self.window.box_Manual_i = vanilla.EditText( (windowColumn1, windowRow8Pos-3, windowSmallColumns, windowRow8Plus-4), callback=self.savePreferences, sizeStyle='small')
+        self.window.text_Row8C = vanilla.TextBox( (windowColumn1 + windowSmallColumns, windowRow8Pos, windowInbetweenSmallColumns, windowRow8Plus), "I:", sizeStyle='small', alignment='right')
+        self.window.box_Manual_I = vanilla.EditText( (windowColumn1 + windowSmallColumns + windowInbetweenSmallColumns, windowRow8Pos-3, -windowMargin, windowRow8Plus-4), callback=self.savePreferences, sizeStyle='small')
+        #Line3
+        self.window.text_Row9 = vanilla.TextBox( (windowMargin, windowRow9Pos, -windowMargin, windowRow9Plus), "Minimal length of a stroke (treshold):", sizeStyle='small')
+        self.window.box_TresholdStrokeLength = vanilla.EditText( (windowColumn1, windowRow9Pos-3, -windowMargin, windowRow9Plus-4), callback=self.savePreferences, sizeStyle='small')
+        self.window.DrawRhythm = vanilla.Button( (windowMargin, windowRow10Pos, -windowMargin, windowRow10Plus), "Draw the rhythm of the selected glyphs", callback=self.WorkOnRhythm, sizeStyle='small')
         
+        ###################
+        # Draw variations #
+        ###################
+        
+        self.window.text_Row11 = vanilla.TextBox( (windowMargin, windowRow11Pos, -windowMargin, windowRow11Plus), "Scale the tickness of the vertical strokes by %:", sizeStyle='small')
+        self.window.box_ScaleThickness = vanilla.EditText( (windowColumn1, windowRow11Pos-3, -windowMargin, windowRow11Plus-4), callback=self.savePreferences, sizeStyle='small')
+        self.window.text_Row12 = vanilla.TextBox( (windowMargin, windowRow12Pos, -windowMargin, windowRow12Plus), "Scale the rest of the glyph by %:", sizeStyle='small')
+        self.window.box_ScaleRest = vanilla.EditText( (windowColumn1, windowRow12Pos-3, -windowMargin, windowRow12Plus-4), callback=self.savePreferences, sizeStyle='small')
+        self.window.text_Row13 = vanilla.TextBox( (windowMargin, windowRow13Pos, -windowMargin, windowRow13Plus), "Scale the side bearings by %:", sizeStyle='small')
+        self.window.box_ScaleSideBearings = vanilla.EditText( (windowColumn1, windowRow13Pos-3, -windowMargin, windowRow13Plus-14), callback=self.savePreferences, sizeStyle='small')
+        self.window.text_Row14 = vanilla.TextBox( (windowMargin, windowRow14Pos, -windowMargin, windowRow14Plus), "Extend the vertical strokes by (Em units):", sizeStyle='small')
+        self.window.box_ExtendRhythmWidth = vanilla.EditText( (windowColumn1, windowRow14Pos-3, -windowMargin, windowRow14Plus-4), callback=self.savePreferences, sizeStyle='small')
+        self.window.text_Row15 = vanilla.TextBox( (windowMargin, windowRow15Pos, -windowMargin, windowRow15Plus), "(Elements close by the rhythm, such as roundings, are probably to be treated in the same way as the rhythm.)", sizeStyle='small')
+        self.window.WorkOnScaling = vanilla.Button( (windowMargin, windowRow16Pos, -windowMargin, windowRow16Plus), "Draw a variation of the current font", callback=self.WorkOnScaling, sizeStyle='small')
+        self.window.text_Row17 = vanilla.TextBox( (windowMargin, windowRow17Pos, -windowMargin, windowRow17Plus), "Note 1: This plugin is not the holy grail to create variations on letters. Some loss of quality will occur. The Rhythm Influencer took away the repetitive work, but as letters are complex drawings, the plugin cannot detect all details. It is up to the designer to make refinements, such as in the contrast, spacing or inktraps.Note 2: components are not scaled. Please select their original glyph as well, and check their position afterwards.\nNote 3: scaling works well on letters with vertical strokes, and relatively well on rounded letters. Complex letters (g, s) and letters with diagonals should not be scaled with this tool.\n", sizeStyle='small')
         
         #################
         # Closing notes #
         #################
         
-        self.window.mergeFiles = vanilla.CheckBox( (windowMargin, windowNotes4Pos, -windowMargin, windowNotes4Min), "Merge different drawings into one file\nFor example: capitals require other scales, round letters could use an angle,… Select and process those separatedly.", callback=self.savePreferences, sizeStyle='small')
+        self.window.mergeFiles = vanilla.CheckBox( (windowMargin, windowNotes4Pos, -windowMargin, windowNotes4Min), "Merge different drawings into one file\nFor example: capitals can require a different scaling. Select and process those separatedly. (But check with automatic sidebearings.)", callback=self.savePreferences, sizeStyle='small')
         self.window.keepWindowOpen = vanilla.CheckBox( (windowMargin, windowNotes3Pos, -windowMargin, windowNotes3Min), "Keep this window open on finish", callback=self.savePreferences, sizeStyle='small' )
         self.window.ExportLog = vanilla.CheckBox( (windowMargin, windowNotes2Pos, -windowMargin, windowNotes2Min), "Export a log to the console", callback=self.savePreferences, sizeStyle='small' )
         self.window.text_notes1 = vanilla.TextBox( (windowMargin, windowNotes1Pos, -windowMargin, windowNotes1Min), "Rhythm Influencer: copyright Maarten Renckens (Artengar) 2020. Free to use, but all rights reserved. Use it with a correct reference. Thanks for your respect. For more info, bug reports, suggestions or gifts to enable further development: maarten.renckens@artengar.com.", sizeStyle='small')
+        
         
         #Render the window
         self.loadPreferences()
         self.window.open()
         self.window.makeKey()
+        
+        #Get the necessary stroke thickness
+        global Active_Font
+        Active_Font = resetCache(debug)
+        iStrokeThickness = 0;
+        IStrokeThickness = 0;
+        iStrokeThickness, IStrokeThickness = detectStrokeThicknesses(debug, self, Active_Font)
+        
+        # Set values in the window
+        self.window.box_iStrokeThickness.set(iStrokeThickness)
+        self.window.box_IStrokeThickness.set(IStrokeThickness)
+    
+    
     
     
     def WorkOnBlackMass(self, sender):
         if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExportLog"]: print("\n<<<Starting Drawing a mass>>>")
         main_steps(makeDistribution=True, makeRhythm=False, makeScale=False)
         if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.KeepWindowOpen"] == 0:
-            self.close()
+            self.window.close()
     
     def WorkOnRhythm(self, sender):
-        if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExportLog"]: print("\n<<<Starting Drawing a rhythm>>>")
+        debug = Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExportLog"]
+        if debug: print("\n<<<Starting Drawing a rhythm>>>")
         if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.OverwriteDetected"] == False:
             detectStrokeThicknesses(debug, self, Active_Font)
         main_steps(makeDistribution=False, makeRhythm=True, makeScale=False)
         if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.KeepWindowOpen"] == 0:
-            self.close()
+            self.window.close()
     
     def WorkOnScaling(self, sender):
-        if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExportLog"]: print("\n<<<Starting Drawing a scaled font>>>")
+        debug = Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.ExportLog"]
+        if debug: print("\n<<<Starting Drawing a scaled font>>>")
         if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.OverwriteDetected"] == False:
             detectStrokeThicknesses(debug, self, Active_Font)
         main_steps(makeDistribution=False, makeRhythm=False, makeScale=True)
         if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.KeepWindowOpen"] == 0:
-            self.close()
+            self.window.close()
     
     
     @objc.python_method
