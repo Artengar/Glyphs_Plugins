@@ -1079,19 +1079,19 @@ class RhythmInfluencer(GeneralPlugin):
         #Line3
         self.window.text_Row9 = vanilla.TextBox( (windowMargin, windowRow9Pos, -windowMargin, windowRow9Plus), "Minimal length of a stroke (treshold):", sizeStyle='small')
         self.window.box_TresholdStrokeLength = vanilla.EditText( (windowColumn1, windowRow9Pos-3, -windowMargin, windowRow9Plus-4), callback=self.savePreferences, sizeStyle='small')
-        self.window.DrawRhythm = vanilla.Button( (windowMargin, windowRow10Pos, -windowMargin, windowRow10Plus), "Draw the scaling zones/rhythm of the selected glyphs", callback=self.WorkOnRhythm, sizeStyle='small')
+        self.window.DrawRhythm = vanilla.Button( (windowMargin, windowRow10Pos, -windowMargin, windowRow10Plus), "Draw the scaling zones of the selected glyphs", callback=self.WorkOnRhythm, sizeStyle='small')
         
         ###################
         # Draw variations #
         ###################
         
-        self.window.text_Row11 = vanilla.TextBox( (windowMargin, windowRow11Pos, -windowMargin, windowRow11Plus), "Scale the tickness of the vertical strokes by %:", sizeStyle='small')
+        self.window.text_Row11 = vanilla.TextBox( (windowMargin, windowRow11Pos, -windowMargin, windowRow11Plus), "Scale the tickness of the rhythm by %:", sizeStyle='small')
         self.window.box_ScaleThickness = vanilla.EditText( (windowColumn1, windowRow11Pos-3, -windowMargin, windowRow11Plus-4), callback=self.savePreferences, sizeStyle='small')
         self.window.text_Row12 = vanilla.TextBox( (windowMargin, windowRow12Pos, -windowMargin, windowRow12Plus), "Scale the rest of the glyph by %:", sizeStyle='small')
         self.window.box_ScaleRest = vanilla.EditText( (windowColumn1, windowRow12Pos-3, -windowMargin, windowRow12Plus-4), callback=self.savePreferences, sizeStyle='small')
         self.window.text_Row13 = vanilla.TextBox( (windowMargin, windowRow13Pos, -windowMargin, windowRow13Plus), "Scale the side bearings by %:", sizeStyle='small')
         self.window.box_ScaleSideBearings = vanilla.EditText( (windowColumn1, windowRow13Pos-3, -windowMargin, windowRow13Plus-4), callback=self.savePreferences, sizeStyle='small')
-        self.window.text_Row14 = vanilla.TextBox( (windowMargin, windowRow14Pos, -windowMargin, windowRow14Plus), "Extend the vertical strokes by (Em units):", sizeStyle='small')
+        self.window.text_Row14 = vanilla.TextBox( (windowMargin, windowRow14Pos, -windowMargin, windowRow14Plus), "Extend the rhythm by (Em units):", sizeStyle='small')
         self.window.box_ExtendRhythmWidth = vanilla.EditText( (windowColumn1, windowRow14Pos-3, -windowMargin, windowRow14Plus), callback=self.savePreferences, sizeStyle='small')
         #self.window.text_Row15 = vanilla.TextBox( (windowMargin, windowRow15Pos, -windowMargin, windowRow15Plus), "(Elements close by the rhythm, such as roundings, are probably to be treated in the same way as the rhythm.)", sizeStyle='small')
         self.window.RoundValues = vanilla.CheckBox( (windowMargin, windowRow15BPos, -windowMargin, windowRow15BPlus), "Use rounded values after scaling.", callback=self.savePreferences, sizeStyle='small')
