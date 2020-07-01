@@ -902,7 +902,6 @@ class RhythmInfluencer(GeneralPlugin):
                 "com.maartenrenckens.RhythmInfluencer.ExportLog": False
             })
             #Populate entry fields
-            self.window.box_hyperlink.set("http://artengar.com/pages/rhythm_influencer.html")
             self.window.box_preciseness.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Preciseness"])
             self.window.DetectSerifs.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.DetectSerifs"])
             self.window.OverwriteDetected.set(Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.OverwriteDetected"])
@@ -925,7 +924,6 @@ class RhythmInfluencer(GeneralPlugin):
     
     def savePreferences(self, sender):
         try:
-            self.window.box_hyperlink.set("http://artengar.com/pages/rhythm_influencer.html")
             Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.Preciseness"] = self.window.box_preciseness.get()
             #Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.DetectSerifs"] = self.window.DetectSerifs.get()
             Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.OverwriteDetected"] = self.window.OverwriteDetected.get()
@@ -967,14 +965,14 @@ class RhythmInfluencer(GeneralPlugin):
         
         #general window info
         windowMargin = 15
-        windowColumn1 = 295
+        windowColumn1 = 230
         windowColumn2 = 100
         windowInbetweenSmallColumns = 20
         windowSmallColumns = (windowColumn2 - windowInbetweenSmallColumns)/2
         windowWidth = windowMargin*2 + windowColumn1 + windowColumn2
         windowExtraSpacer = 20
-        windowRow1Plus = 60
-        windowRow2Pos = windowMargin + windowRow1Plus
+        windowRow1Plus = 35
+        windowRow2Pos = windowMargin+windowRow1Plus - 20#help button
         windowRow2Plus = 20
         #Rows1
         windowRow3Pos = windowRow2Pos + windowRow2Plus + windowExtraSpacer
@@ -1011,9 +1009,9 @@ class RhythmInfluencer(GeneralPlugin):
         windowRow16Pos = windowRow15BPos + windowRow15BPlus
         windowRow16Plus = 20
         windowRow17Pos = windowRow16Pos + windowRow16Plus
-        windowRow17Plus = 80
+        windowRow17Plus = 35
         
-        windowHeight = windowRow17Pos + windowRow17Plus + 100
+        windowHeight = windowRow17Pos + windowRow17Plus + 110
         
         #Closing notes (written in reverse order!)
         windowNotes1Min = 30 + windowMargin
@@ -1036,8 +1034,9 @@ class RhythmInfluencer(GeneralPlugin):
         # General introduction #
         ########################
         
-        self.window.text_1 = vanilla.TextBox( (windowMargin, windowMargin, -windowMargin, windowRow1Plus), "The Rhythm Influencer assists with fast creating variations on (most) letters. Read the instructions first by copy-pasting the link below in your browser before using this plugin.", sizeStyle='regular')
-        self.window.box_hyperlink = vanilla.EditText( (windowMargin, windowRow2Pos, -windowMargin, windowRow2Plus), callback=self.savePreferences, sizeStyle='small')
+        self.window.text_1 = vanilla.TextBox( (windowMargin, windowMargin, -windowMargin, windowRow1Plus), "The Rhythm Influencer assists with creating variations on (most) letters. Read the instructions:", sizeStyle='regular')
+        self.window.hyperlink = vanilla.HelpButton( (windowMargin+windowColumn1+windowColumn2-25, windowRow2Pos, -windowMargin, windowRow2Plus), callback=self.openURL)
+        self.window.hyperlink.getNSButton().setToolTip_("Go to artengar.com for more information about this plugin, its working as well as its current limitations. Requires an internet connection.")
         ###############
         # Preciseness #
         ###############
@@ -1063,7 +1062,7 @@ class RhythmInfluencer(GeneralPlugin):
         ###################
         
         #Line1
-        self.window.text_Row7A = vanilla.TextBox( (windowMargin, windowRow7Pos, -windowMargin, windowRow7Plus), "Use the automatically detected stroke thicknesses:", sizeStyle='small')
+        self.window.text_Row7A = vanilla.TextBox( (windowMargin, windowRow7Pos, -windowMargin, windowRow7Plus), "Auto detected stroke thicknesses:", sizeStyle='small')
         self.window.text_Row7B = vanilla.TextBox( (windowColumn1-windowInbetweenSmallColumns, windowRow7Pos, windowInbetweenSmallColumns, windowRow7Plus), "i:", sizeStyle='small', alignment='right')
         self.window.box_iStrokeThickness = vanilla.EditText( (windowColumn1, windowRow7Pos-3, windowSmallColumns, windowRow7Plus-4), sizeStyle='small')
         self.window.box_iStrokeThickness.enable(False)
@@ -1071,7 +1070,7 @@ class RhythmInfluencer(GeneralPlugin):
         self.window.box_IStrokeThickness = vanilla.EditText( (windowColumn1 + windowSmallColumns + windowInbetweenSmallColumns, windowRow7Pos-3, -windowMargin, windowRow7Plus-4), sizeStyle='small')
         self.window.box_IStrokeThickness.enable(False)
         #Line2
-        self.window.OverwriteDetected = vanilla.CheckBox( (windowMargin, windowRow8Pos-2, -windowMargin, windowRow8Plus-2), "Or use those minimal stroke thicknesses:", callback=self.savePreferences, sizeStyle='small')
+        self.window.OverwriteDetected = vanilla.CheckBox( (windowMargin, windowRow8Pos-2, -windowMargin, windowRow8Plus-2), "Or overwrite those with:", callback=self.savePreferences, sizeStyle='small')
         self.window.text_Row8B = vanilla.TextBox( (windowColumn1-windowInbetweenSmallColumns, windowRow8Pos, windowInbetweenSmallColumns, windowRow8Plus), "i:", sizeStyle='small', alignment='right')
         self.window.box_Manual_i = vanilla.EditText( (windowColumn1, windowRow8Pos-3, windowSmallColumns, windowRow8Plus-4), callback=self.savePreferences, sizeStyle='small')
         self.window.text_Row8C = vanilla.TextBox( (windowColumn1 + windowSmallColumns, windowRow8Pos, windowInbetweenSmallColumns, windowRow8Plus), "I:", sizeStyle='small', alignment='right')
@@ -1096,7 +1095,9 @@ class RhythmInfluencer(GeneralPlugin):
         #self.window.text_Row15 = vanilla.TextBox( (windowMargin, windowRow15Pos, -windowMargin, windowRow15Plus), "(Elements close by the rhythm, such as roundings, are probably to be treated in the same way as the rhythm.)", sizeStyle='small')
         self.window.RoundValues = vanilla.CheckBox( (windowMargin, windowRow15BPos, -windowMargin, windowRow15BPlus), "Use rounded values after scaling.", callback=self.savePreferences, sizeStyle='small')
         self.window.WorkOnScaling = vanilla.Button( (windowMargin, windowRow16Pos, -windowMargin, windowRow16Plus), "Draw a variation of the selected glyphs", callback=self.WorkOnScaling, sizeStyle='small')
-        self.window.text_Row17 = vanilla.TextBox( (windowMargin, windowRow17Pos, -windowMargin, windowRow17Plus), "Note 1: Take care that the Rhythm Influencer does not deliver polished letter forms. See the notes on the web.\nNote 2: components are not scaled. Please select their original glyph in order to process them.", sizeStyle='small')
+        self.window.WorkOnScaling.getNSButton().setToolTip_("Note 1: Take note that the Rhythm Influencer does not deliver polished letter forms. More info on the web.\nNote 2: components are not scaled. Please select their original glyph in order to process them.")
+        self.window.text_Row17 = vanilla.TextBox( (windowMargin, windowRow17Pos, -windowMargin, windowRow17Plus), "(Tip: read the tooltips/online instructions)", sizeStyle='small')
+        
         
         #################
         # Closing notes #
@@ -1129,6 +1130,13 @@ class RhythmInfluencer(GeneralPlugin):
             self.window.box_IStrokeThickness.set(100)
     
     
+    
+    
+    def openURL( self, sender ):
+        URL = "http://artengar.com/pages/rhythm_influencer.html"
+        if URL:
+            import webbrowser
+            webbrowser.open( URL )
     
     def WorkOnBlackMass(self, sender):
         if len(Glyphs.fonts) > 0:
