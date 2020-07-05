@@ -3,6 +3,12 @@
 #Read the docs: https://github.com/schriftgestalt/GlyphsSDK/tree/master/Python%20Templates/General%20Plugin
 ###########################################################################################################
 
+
+
+"""Todo next: catch errors on the glyph 'none' (an enter in the edit view)"""
+
+
+
 from __future__ import division, print_function, unicode_literals
 import objc
 from GlyphsApp import *
@@ -735,7 +741,6 @@ def main_steps(makeDistribution, makeRhythm, makeScale):
         
         #create a working file that does not contain unnecessary details, nor overlap in paths
         InvisibleWorkingFile = CreateWorkingFile(Active_Font)
-        if debug: Glyphs.fonts.append(InvisibleWorkingFile)
         #Check if new or merged files are required
         if Glyphs.defaults["com.maartenrenckens.RhythmInfluencer.MergeFiles"] == 0:
             #ALWAYS create a file for the distribution of the black mass
@@ -1095,7 +1100,7 @@ class RhythmInfluencer(GeneralPlugin):
         #self.window.text_Row15 = vanilla.TextBox( (windowMargin, windowRow15Pos, -windowMargin, windowRow15Plus), "(Elements close by the rhythm, such as roundings, are probably to be treated in the same way as the rhythm.)", sizeStyle='small')
         self.window.RoundValues = vanilla.CheckBox( (windowMargin, windowRow15BPos, -windowMargin, windowRow15BPlus), "Use rounded values after scaling.", callback=self.savePreferences, sizeStyle='small')
         self.window.WorkOnScaling = vanilla.Button( (windowMargin, windowRow16Pos, -windowMargin, windowRow16Plus), "Draw a variation of the selected glyphs", callback=self.WorkOnScaling, sizeStyle='small')
-        self.window.WorkOnScaling.getNSButton().setToolTip_("Note 1: Take note that the Rhythm Influencer does not deliver polished letter forms. More info on the web.\nNote 2: components are not scaled. Please select their original glyph in order to process them.")
+        self.window.WorkOnScaling.getNSButton().setToolTip_("Note 1: Multiple master files are not implemented yet.\nNote 2: Take note that the Rhythm Influencer does not deliver polished letter forms. More info on the web.\nNote 3: components are not scaled. Please select their original glyph in order to process them.")
         self.window.text_Row17 = vanilla.TextBox( (windowMargin, windowRow17Pos, -windowMargin, windowRow17Plus), "(Tip: read the tooltips/online instructions)", sizeStyle='small')
         
         
