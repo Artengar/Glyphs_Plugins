@@ -2,6 +2,9 @@
 ###########################################################################################################
 #Read the docs: https://github.com/schriftgestalt/GlyphsSDK/tree/master/Python%20Templates/General%20Plugin
 ###########################################################################################################
+#Contact the developer: Artengar.com (maarten.renckens@artengar.com)
+#c2020 Maarten Renckens. All rights reserved
+###########################################################################################################
 
 
 
